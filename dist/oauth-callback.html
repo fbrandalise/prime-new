@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Autenticando…</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center;
+           height: 100vh; margin: 0; background: #f8fafc; color: #475569; }
+    p { font-size: 15px; }
+  </style>
+</head>
+<body>
+  <p>Autenticando… pode fechar esta janela.</p>
+  <script>
+    // Implicit flow: access_token vem no hash
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    // Code flow: code vem na query string
+    const query = new URLSearchParams(window.location.search)
+
+    const token  = hash.get('access_token')
+    const code   = query.get('code')
+    const error  = hash.get('error') || query.get('error')
+
+    if (window.opener) {
+      if (token) {
+        window.opener.postMessage({ type: 'gmail-oauth-token', token }, window.location.origin)
+      } else if (code) {
+        window.opener.postMessage({ type: 'gmail-oauth-code', code }, window.location.origin)
+      } else {
+        window.opener.postMessage({ type: 'gmail-oauth-error', error: error || 'cancelled' }, window.location.origin)
+      }
+      window.close()
+    }
+  </script>
+</body>
+</html>
