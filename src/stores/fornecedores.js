@@ -1,0 +1,32 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import * as service from '@/services/fornecedoresService'
+
+export const useFornecedoresStore = defineStore('fornecedores', () => {
+  const items   = ref([])
+  const loading = ref(false)
+
+  async function fetchAll() {
+    loading.value = true
+    try {
+      const data = await service.getAll()
+      items.value = data
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function create(formData) {
+    const payload = {
+      nome: formData.nome.trim(),
+      cnpj: formData.cnpj?.trim() || null,
+    }
+    const raw = await service.create(payload)
+    items.value.push(raw)
+    // Mantém ordenado por nome
+    items.value.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+    return raw
+  }
+
+  return { items, loading, fetchAll, create }
+})

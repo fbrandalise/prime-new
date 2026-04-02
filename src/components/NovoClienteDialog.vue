@@ -1,0 +1,122 @@
+<script setup>
+import { ref, computed } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import { useClientesStore } from '@/stores/clientes'
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import InputMask from 'primevue/inputmask'
+import FloatLabel from 'primevue/floatlabel'
+
+const props = defineProps({
+  modelValue:  { type: Boolean, default: false },
+  initialNome: { type: String,  default: '' },
+})
+const emit = defineEmits(['update:modelValue', 'created'])
+
+const toast  = useToast()
+const store  = useClientesStore()
+const saving = ref(false)
+const submitted = ref(false)
+
+const form = ref({ nome: '', cnpj: '' })
+
+const open = (val) => {
+  if (val) {
+    form.value  = { nome: props.initialNome ?? '', cnpj: '' }
+    submitted.value = false
+  }
+}
+
+const errors = computed(() => ({
+  nome: submitted.value && !form.value.nome.trim(),
+}))
+
+const save = async () => {
+  submitted.value = true
+  if (errors.value.nome) return
+  saving.value = true
+  try {
+    const created = await store.create(form.value)
+    toast.add({ severity: 'success', summary: 'Cliente cadastrado', detail: created.nome, life: 3000 })
+    emit('created', created)
+    emit('update:modelValue', false)
+  } catch {
+    toast.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível cadastrar o cliente.', life: 4000 })
+  } finally {
+    saving.value = false
+  }
+}
+
+const close = () => emit('update:modelValue', false)
+</script>
+
+<template>
+  <Dialog
+    :visible="modelValue"
+    modal
+    header="Novo cliente"
+    :style="{ width: '26rem', maxWidth: '95vw' }"
+    @update:visible="(v) => { if (!v) close(); open(v) }"
+    @show="open(true)"
+  >
+    <div class="ncd-fields">
+      <div class="ncd-field">
+        <FloatLabel variant="on">
+          <InputText
+            id="ncd-nome"
+            v-model="form.nome"
+            :invalid="errors.nome"
+            fluid
+            autofocus
+          />
+          <label for="ncd-nome">Nome <span class="ncd-req">*</span></label>
+        </FloatLabel>
+        <small v-if="errors.nome" class="ncd-error">Nome é obrigatório</small>
+      </div>
+
+      <div class="ncd-field">
+        <FloatLabel variant="on">
+          <InputMask
+            id="ncd-cnpj"
+            v-model="form.cnpj"
+            mask="99.999.999/9999-99"
+            placeholder="00.000.000/0000-00"
+            fluid
+          />
+          <label for="ncd-cnpj">CNPJ</label>
+        </FloatLabel>
+      </div>
+    </div>
+
+    <template #footer>
+      <Button label="Cancelar" severity="secondary" variant="outlined" @click="close" />
+      <Button label="Cadastrar" icon="pi pi-check" :loading="saving" @click="save" />
+    </template>
+  </Dialog>
+</template>
+
+<style scoped>
+.ncd-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.ncd-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.ncd-req {
+  color: var(--p-red-500);
+  margin-left: 0.1em;
+}
+
+.ncd-error {
+  font-size: 0.75rem;
+  color: var(--p-red-500);
+  margin-top: 0.25rem;
+}
+</style>
